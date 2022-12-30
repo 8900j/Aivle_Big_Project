@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from shapely.geometry import Point, Polygon
 import folium
 from streamlit_folium import st_folium
 import geopandas as gpd
@@ -64,27 +63,24 @@ shopping = shopping.to_crs({'init':'epsg:5179'})
 shopping = shopping[['명칭','위도','경도','분류3','geometry']]
 shopping.rename(columns = {'분류3' : '분류'}, inplace =True)
 
-def mark_at_map(df,i,marker_color,ic): 
+def mark_at_map(df,i,marker_color): 
     """[‘red’, ‘blue’, ‘green’, ‘purple’, ‘orange’, ‘darkred’,’lightred’, ‘beige’, ‘darkblue’, ‘darkgreen’, 
     ‘cadetblue’, ‘darkpurple’, ‘white’, ‘pink’, ‘lightblue’, ‘lightgreen’, ‘gray’, ‘black’, ‘lightgray’]"""
     if '분류' in df.columns :
         folium.Marker([df['위도'][i], df['경도'][i]] ,
                       tooltip = df.iloc[i]['분류'] + ' : ' + df.iloc[i]['명칭'] ,
-                      icon = folium.Icon(color =marker_color,icon = ic, prefix='fa')
+                      icon = folium.Icon(color =marker_color,)
                      ).add_to(map)
     else:
         folium.Marker([df['위도'][i],df['경도'][i]] ,
                       tooltip = df.iloc[i]['명칭'],
-                      icon = folium.Icon(color =marker_color,icon = ic, prefix='fa')
+                      icon = folium.Icon(color =marker_color,)
                      ).add_to(map)
 # --------------------------------------------------------------------------------------------------------------------------------------------
 
-tab1, tab2 = st.tabs(['직원용 웹사이트','고객용 웹사이트'])
+tab1, tab2 = st.tabs(['에어비앤비 직원용','호스트 희망 임대인용'])
 
 with tab1:
-
-    # 직원용 웹사이트
-    st.title('직원용 웹사이트')
 
     st.markdown('#### 차액 기준 내림차순 고객 리스트')    
     st.dataframe(dt[['단지명','주소','예측월세가격', '기존월세가격', '월수입차액']])
@@ -92,12 +88,11 @@ with tab1:
     st.markdown('#### 고객 정보 검색')
     a,b,c = st.columns(3)
 
-    idx = a.text_input(f'index 번호(0~{len(dt)})를 입력하세요') # 유저한테 글자 입력받기
+    idx = a.text_input(f'index 번호(0~{len(dt)-1})를 입력하세요') # 유저한테 글자 입력받기
 
     if idx :
         i=int(idx)
-        title_container = st.container()
-        a,b,c1,c2,d=st.columns([0.45,1,0.15,0.15,0.3])
+        a,b,c,d=st.columns([0.4,0.1,0.8,0.4])
         # 정류장, 지하철 역 표현을 위한 df
         tmp=dt.iloc[[i]]
         
@@ -123,39 +118,41 @@ with tab1:
         shopping_remain = shopping.loc[shopping.geometry.within(tmpo['1000버퍼'][i]),:]
         shopping_remain.reset_index(drop =True, inplace= True)
 
-        # *************************************************************************************
+        
+            # *************************************************************************************
         
         with a:
-            # 2. 가격 정보(차트): 예측월세가격, 기존월세가격, 월수입차액
-#             st.info('**INDEX {}번의 월수입차액**'.format(idx))
-#             st.markdown('# ↑{}만 원'.format(int(dt.iloc[i]['월수입차액'])))
-            basic=pd.DataFrame({'단지명':tmp['단지명'],'전용면적(㎡)':tmp['전용면적'],'주소':tmp['주소']})
-            name=basic['단지명'].values[0]
-            size=basic['전용면적(㎡)'].values[0]
-            st.markdown('### 단지명: {}  /  전용면적: {}㎡'.format(name,size))
-            
-            if int(dt.iloc[i]['월수입차액'])>=0:
-                txt = '<p style="font-family:Malgun Gothic; color:cornflowerblue; font-size: 40px;">{}만 원 UP</p>'
-                st.markdown(txt.format(int(dt.iloc[i]['월수입차액'])), unsafe_allow_html=True)
-            else:
-                txt = '<p style="font-family:Malgun Gothic; color:red; font-size: 40px;">{}만 원 DOWN</p>'
-                st.markdown(txt.format(int(dt.iloc[i]['월수입차액'])), unsafe_allow_html=True)
-                
+            # 1-2. 가격 정보(차트): 예측월세가격, 기존월세가격, 월수입차액
             m=['기존월세가격','예측월세가격']
             n=[int(tmp['기존월세가격'][i]),int(tmp['예측월세가격'][i])]
             price=pd.DataFrame({'구분':m,'가격':n})
-            fig = px.bar(price, x='구분', y='가격',text_auto=True, width=300, height=500) # text_auto=True 값 표시 여부, title='제목' 
+            fig = px.bar(price, x='구분', y='가격',text_auto=True, width=350, height=600) # text_auto=True 값 표시 여부, title='제목' 
             st.plotly_chart(fig)
-            
-        # *************************************************************************************
+
+            # *************************************************************************************
+        
+        ten1=tmp[['맛집', '문화공간', '문화재', '쇼핑']]
         
         with b:
-            # 1. 기본 정보(표 / 위경도 지도): 단지명, 전용면적, 주소
+            txt1=ten1['쇼핑'].values[0]
+            img1="https://github.com/8900j/BIG_project/blob/main/logo_shop.png?raw=true"
+            st.markdown(f'<h1 style="font-size: 20px;">{txt1}개</h1><img style="width:40px" src={img1}/>', unsafe_allow_html=True)
 
-#             basic=pd.DataFrame({'단지명':tmp['단지명'],'전용면적(㎡)':tmp['전용면적'],'주소':tmp['주소']})
-#             name=basic['단지명'].values[0]
-#             size=basic['전용면적(㎡)'].values[0]
+            txt2=ten1['문화공간'].values[0]
+            img2="https://github.com/8900j/BIG_project/blob/main/logo_space.png?raw=true"
+            st.markdown(f'<h1 style="font-size: 20px;">{txt2}개</h1><img style="width:45px" src={img2}/>', unsafe_allow_html=True)
 
+            txt3=ten1['문화재'].values[0]
+            img3="https://github.com/8900j/BIG_project/blob/main/logo_culture.png?raw=true"
+            st.markdown(f'<h1 style="font-size: 20px;">{txt3}개</h1><img style="width:45px" src={img3}/>', unsafe_allow_html=True)
+
+            txt4=ten1['맛집'].values[0]
+            img4="https://github.com/8900j/BIG_project/blob/main/logo_food.png?raw=true"
+            st.markdown(f'<h1 style="font-size: 20px;">{txt4}개</h1><img style="width:40px" src={img4}/>', unsafe_allow_html=True)
+  
+            # *************************************************************************************   
+        
+        with c:
             #지도
 
             home_lat = tmp['위도'] # 위도
@@ -190,14 +187,23 @@ with tab1:
             # 버스정류장 marker 추가
             folium.Marker(location=[bus_lat, bus_lng],tooltip=bus_station,zoom_start=15,icon=folium.Icon(color='blue',icon='bus', prefix='fa')).add_to(map)
             
+#             for k in range(len(munhwa_remain)):
+#                 mark_at_map(munhwa_remain,k,'green', 'ticket')
+
+#             for k in range(len(munhwa_space_remain)):
+#                 mark_at_map(munhwa_space_remain,k,'orange', 'hashtag')
+
+#             for k in range(len(shopping_remain)):
+#                 mark_at_map(shopping_remain,k,'pink', 'shopping-bag')
+                
             for k in range(len(munhwa_remain)):
-                mark_at_map(munhwa_remain,k,'green', 'ticket')
+                mark_at_map(munhwa_remain,k,'green')
 
             for k in range(len(munhwa_space_remain)):
-                mark_at_map(munhwa_space_remain,k,'orange', 'hashtag')
+                mark_at_map(munhwa_space_remain,k,'orange')
 
             for k in range(len(shopping_remain)):
-                mark_at_map(shopping_remain,k,'pink', 'shopping-bag')
+                mark_at_map(shopping_remain,k,'pink')
 
             # 500m 반경 원 추가하기
             folium.Circle(
@@ -210,69 +216,42 @@ with tab1:
             ).add_to(map)
 
             # call to render Folium map in Streamlit
-            st.st_data = st_folium(baegyeong, width=653, height=580)
-
-        # *************************************************************************************
-        #with title_container:
-        ten1=tmp[['맛집', '문화공간', '문화재', '쇼핑']]
-        with c1:
-            st.image('https://cdn-icons-png.flaticon.com/512/685/685352.png',width=50)
-            st.image('https://cdn-icons-png.flaticon.com/512/9252/9252432.png',width=50)
-            st.image('https://cdn-icons-png.flaticon.com/512/5789/5789172.png',width=60)
-            st.image('https://cdn-icons-png.flaticon.com/512/582/582929.png',width=50)
-
-        with c2:
-            st.markdown('##### 맛집')
-            st.markdown('##### {}개'.format(ten1['맛집'].values[0]))
-
-            st.markdown('##### 문화공간')
-            st.markdown('##### {}개'.format(ten1['문화공간'].values[0]))
-
-            st.markdown('##### 문화재')
-            st.markdown('##### {}개'.format(ten1['문화재'].values[0]))
-
-            st.markdown('##### 쇼핑')
-            st.markdown('##### {}개'.format(ten1['쇼핑'].values[0]))
+            st.st_data = st_folium(baegyeong, width=600, height=550)
             
-#         with c:
-#             # 3. 반경 1km 내 관광정보(차트): 맛집, 문화공간, 문화재, 쇼핑
-#             st.info('**반경 1km 내**')
-#             ten1=tmp[['맛집', '문화공간', '문화재', '쇼핑']]
-            
-#             st.image('https://cdn-icons-png.flaticon.com/512/685/685352.png',width=50)
-#             st.markdown('**맛집**')
-#             st.markdown('### {}개'.format(ten1['맛집'].values[0]))
-
-#             st.image('https://cdn-icons-png.flaticon.com/512/9252/9252432.png',width=50)
-#             st.markdown('**문화공간**')
-#             st.markdown('### {}개'.format(ten1['문화공간'].values[0]))
-
-#             st.image('https://cdn-icons-png.flaticon.com/512/5789/5789172.png',width=60)
-#             st.markdown('**문화재**')
-#             st.markdown('### {}개'.format(ten1['문화재'].values[0]))
-
-#             st.image('https://cdn-icons-png.flaticon.com/512/582/582929.png',width=50)
-#             st.markdown('**쇼핑**')
-#             st.markdown('### {}개'.format(ten1['쇼핑'].values[0]))
-
             # *************************************************************************************
         
         with d:
-            # 4. 교통 정보(표): 지하철역, 지하철역까지(m), 버스정류장, 버스정류장까지(m)
-            st.info('**최단거리 대중교통**')
             ten2=tmp[['지하철역', '지하철역까지(m)', '버스정류장', '버스정류장까지(m)']]
-            
-            st.image('https://cdn-icons-png.flaticon.com/512/635/635705.png',width=50)
-            st.markdown('#### {}'.format(ten2['버스정류장'].values[0]))
-            st.markdown('### {}m'.format(int(ten2['버스정류장까지(m)'].values[0])))
-            
-            st.image('https://cdn-icons-png.flaticon.com/512/50/50724.png',width=50)
-            st.markdown('#### {}'.format(ten2['지하철역'].values[0]))
-            st.markdown('### {}m'.format(int(ten2['지하철역까지(m)'].values[0])))
+            # 기본 정보: 단지명, 전용면적
+            basic=pd.DataFrame({'단지명':tmp['단지명'],'전용면적(㎡)':tmp['전용면적'],'주소':tmp['주소']})
+            name=basic['단지명'].values[0]
+            size=basic['전용면적(㎡)'].values[0]
+            st.markdown('### 단지명: {}'.format(name))
+            st.markdown('### 전용면적: {}㎡'.format(size))
 
-        # *************************************************************************************
-        
+            txt = '<p style="font-family:Malgun Gothic; color:cornflowerblue; font-size: 40px;">{}만 원 UP</p>'
+            st.markdown(txt.format(int(dt.iloc[i]['월수입차액'])), unsafe_allow_html=True)
+            
+
+#             if int(dt.iloc[i]['월수입차액'])>=0:
+#                 txt = '<p style="font-family:Malgun Gothic; color:cornflowerblue; font-size: 40px;">{}만 원 UP</p>'
+#                 st.markdown(txt.format(int(dt.iloc[i]['월수입차액'])), unsafe_allow_html=True)
+#             else:
+#                 txt = '<p style="font-family:Malgun Gothic; color:red; font-size: 30px;">{}만 원 down</p>'
+#                 st.markdown(txt.format(int(dt.iloc[i]['월수입차액']), unsafe_allow_html=True)
+                            
+            txt5=ten2['버스정류장'].values[0]
+            txt6=int(ten2['버스정류장까지(m)'].values[0])
+            img5="https://github.com/8900j/BIG_project/blob/main/logo_bus.png?raw=true"
+            st.markdown(f'<h1 style="font-size: 20px;">{txt5},{txt6}m</h1><img style="width:50px" src={img5}/>', unsafe_allow_html=True)
+
+            txt7=ten2['지하철역'].values[0]
+            txt8=int(ten2['지하철역까지(m)'].values[0])
+            img6="https://github.com/8900j/BIG_project/blob/main/logo_metro.png?raw=true"
+            st.markdown(f'<h1 style="font-size: 20px;">{txt7},{txt8}m</h1><img style="width:50px" src={img6}/>', unsafe_allow_html=True)
+                        
         # 5. 고객 연락수단
+
         st.markdown('**고객 연락수단 (email, sns 등)**')
         a,b,c,d = st.columns([1,1,1,1])
         a.markdown(f'##### [📨e-mail](mailto:ktaivle@kt.com)') # 에이블스쿨 이메일
@@ -282,13 +261,8 @@ with tab1:
     else:
         txt = '<p style="font-family:Malgun Gothic; color:cornflowerblue; font-size: 15px;">▲ index 번호를 입력해주세요</p>'
         st.markdown(txt, unsafe_allow_html=True)
-
 # --------------------------------------------------------------------------------------------------------------------------------------------
-
 with tab2:
-
-    # 고객용 웹사이트
-    st.title('고객용 웹사이트')
 
     new_title = '<p style="font-family:Malgun Gothic; color:lightcoral; font-size: 30px;">당신의 공간을 에어비앤비하세요!</p>'
     st.markdown(new_title, unsafe_allow_html=True)
